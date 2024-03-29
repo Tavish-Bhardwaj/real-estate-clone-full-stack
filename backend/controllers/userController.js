@@ -19,3 +19,80 @@ export const createUser= asyncHandler(async(req,res)=>{
 
 })
 
+
+// function to book a visit to resd
+
+export const bookVisit= asyncHandler(async(req,res)=>{
+const {email,date}  =req.body;
+const {id} = req.params;
+
+try {
+  const alreadyBooked = await prisma.user.findUnique({
+    where: {email}, 
+    select: {bookedVisits: true}
+  })
+  
+  if(alreadyBooked.bookedVisits.some((visit)=>visit.id === id)) {
+    res.status(400).json({message: "You have already booked this visit"})
+  }
+  else{
+    await prisma.user.update({
+      where: {email},
+      data:{
+        bookedVisits:{push:{id, date}}
+      }
+    })
+    res.send("Visit booked successfully")
+  }
+} catch (error) {
+  throw new Error(error.message)
+  
+}
+})
+
+
+// function to get all bookings of the user
+export const  allBookings= asyncHandler(async(req,res)=>{
+  const {email}= req.body;
+  try {
+    const Bookings= await prisma.user.findUnique({
+      where: {email},
+      select: {bookedVisits: true}
+    })
+    res.status(200).send(Bookings)
+  } catch (error) {
+    throw new Error(error.message)
+  }
+})
+
+// function to cancel a booking
+export const cancelBooking= asyncHandler(async(req,res)=>{
+const {email} = req.body;
+const {id} = req.params;
+try {
+  
+const user = await prisma.user.findUnique({
+  where: {email},
+  select: {bookedVisits: true}
+})
+
+const index = user.bookedVisits.findIndex((visit)=>visit.id === id)
+
+if(index === -1){
+  res.status(404).json({message: "booking not found"})
+}else{
+  user.bookedVisits.splice(index, 1)
+  await prisma.user.update({
+    where: {email},
+    data: {
+      bookedVisits: user.bookedVisits
+    }
+  })
+  res.send("booking cancelled successfully")
+
+}
+
+} catch (error) {
+  throw new Error(error.message);
+}
+})
