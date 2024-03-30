@@ -96,3 +96,56 @@ if(index === -1){
   throw new Error(error.message);
 }
 })
+
+
+// function to add a residency in favourite list of a user
+
+export const toFav= asyncHandler(async(req,res)=> {
+  const {email}= req.body;
+  const {rid}= req.params;
+
+  try {
+    const user= await prisma.user.findUnique({
+      where: {email},
+      
+    })
+    
+
+    if(user.favResidenciesID.includes(rid)){
+      const updatedUser= await prisma.user.update({
+        where: {email},
+        data: {
+          favResidenciesID: {set:user.favResidenciesID.filter((id)=>id !== rid)}
+        }
+      })
+      res.send({message:"residency removed from favourites", user: updatedUser})
+    }
+    else{
+      const updatedUser= await prisma.user.update({
+        where: {email},
+        data: {
+          favResidenciesID: {push: rid}
+        }
+      })
+      res.send({message:"residency added to favourites", user: updatedUser})
+    }
+  } catch (error) {
+    throw new Error(error.message);
+    
+  }
+})
+
+
+// function to get all favourites
+ export const getAllFav= asyncHandler(async(req,res)=>{
+const {email}= req.body;
+try {
+  const favResd= await prisma.user.findUnique({
+    where: {email},
+    select: {favResidenciesID: true}
+  })
+  res.status(200).send(favResd);
+} catch (error) {
+  throw new Error(error.message);
+}
+ })
